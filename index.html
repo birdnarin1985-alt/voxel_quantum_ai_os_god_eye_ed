@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel OS : Digital Dhammaduta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', 'Fira Code', monospace;
+            background-color: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden;
+            color: #00ff00;
+        }
+        
+        .font-mono-code {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* 3D Voxel Core */
+        .scene {
+            width: 60px;
+            height: 60px;
+            perspective: 400px;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: spin 8s infinite linear;
+        }
+        .cube__face {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ff00;
+            background: rgba(0, 25px, 0, 0.8);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) inset;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        .cube__face--front  { transform: rotateY(  0deg) translateZ(30px); }
+        .cube__face--right  { transform: rotateY( 90deg) translateZ(30px); }
+        .cube__face--back   { transform: rotateY(180deg) translateZ(30px); }
+        .cube__face--left   { transform: rotateY(-90deg) translateZ(30px); }
+        .cube__face--top    { transform: rotateX( 90deg) translateZ(30px); }
+        .cube__face--bottom { transform: rotateX(-90deg) translateZ(30px); }
+        
+        @keyframes spin {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Window Glow */
+        .os-window {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.15), inset 0 0 10px rgba(0, 255, 0, 0.05);
+            backdrop-filter: blur(4px);
+        }
+        
+        .icon-hover:hover {
+            transform: scale(1.05);
+            text-shadow: 0 0 8px #00ff00;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col selection:bg-green-500 selection:text-black">
+    <div class="scanlines"></div>
+
+    <!-- Desktop Area -->
+    <main class="flex-1 relative p-6 flex flex-col gap-6" id="desktop">
+        <!-- Voxel Core Indicator -->
+        <div class="absolute top-6 right-6 flex items-center gap-4">
+            <div class="text-right text-xs font-mono-code text-green-500/80">
+                <p>VOXEL_CORE: ONLINE</p>
+                <p>MANTRA_THROUGHPUT: MAX</p>
+            </div>
+            <div class="scene">
+                <div class="cube">
+                    <div class="cube__face cube__face--front">สติ</div>
+                    <div class="cube__face cube__face--back">สมาธิ</div>
+                    <div class="cube__face cube__face--right">ปัญญา</div>
+                    <div class="cube__face cube__face--left">เมตตา</div>
+                    <div class="cube__face cube__face--top">รวย</div>
+                    <div class="cube__face cube__face--bottom">เฮง</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Icons -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-2xl mt-12">
+            <button onclick="openWindow('dharma')" class="icon-hover group flex flex-col items-center gap-2 p-4 border border-transparent hover:border-green-500/50 rounded-lg transition-all">
+                <div class="text-4xl bg-green-950 p-4 border border-green-700 rounded-lg group-hover:bg-green-900 shadow-[0_0_15px_rgba(0,255,0,0.2)]">🪷</div>
+                <span class="text-sm font-semibold tracking-wider">Dharma-Terminal</span>
+            </button>
+
+            <button onclick="openWindow('karma')" class="icon-hover group flex flex-col items-center gap-2 p-4 border border-transparent hover:border-green-500/50 rounded-lg transition-all">
+                <div class="text-4xl bg-green-950 p-4 border border-green-700 rounded-lg group-hover:bg-green-900 shadow-[0_0_15px_rgba(0,255,0,0.2)]">⚙️</div>
+                <span class="text-sm font-semibold tracking-wider">Karma-Debugger</span>
+            </button>
+
+            <button onclick="openWindow('wealth')" class="icon-hover group flex flex-col items-center gap-2 p-4 border border-transparent hover:border-green-500/50 rounded-lg transition-all">
+                <div class="text-4xl bg-green-950 p-4 border border-green-700 rounded-lg group-hover:bg-green-900 shadow-[0_0_15px_rgba(0,255,0,0.2)]">💰</div>
+                <span class="text-sm font-semibold tracking-wider">Millionaire-Compiler</span>
+            </button>
+
+            <button onclick="openWindow('armor')" class="icon-hover group flex flex-col items-center gap-2 p-4 border border-transparent hover:border-green-500/50 rounded-lg transition-all">
+                <div class="text-4xl bg-green-950 p-4 border border-green-700 rounded-lg group-hover:bg-green-900 shadow-[0_0_15px_rgba(0,255,0,0.2)]">🛡️</div>
+                <span class="text-sm font-semibold tracking-wider">Diamond-Armor</span>
+            </button>
+        </div>
+
+        <!-- System Window (Hidden by default) -->
+        <div id="app-window" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-2xl bg-[#0a0a0a] border-2 border-green-600 rounded-sm os-window z-40">
+            <!-- Title bar -->
+            <div class="bg-green-900 border-b-2 border-green-600 px-3 py-1 flex justify-between items-center">
+                <span id="window-title" class="font-mono-code font-bold text-black text-sm">c:\voxel_os\module.exe</span>
+                <button onclick="closeWindow()" class="text-black hover:text-white font-bold px-2 bg-green-600 hover:bg-red-600 transition-colors">X</button>
+            </div>
+            <!-- Content -->
+            <div class="p-4 h-64 overflow-y-auto font-mono-code text-sm">
+                <div id="window-content" class="whitespace-pre-line text-green-400"></div>
+                <div class="mt-4 flex items-center">
+                    <span class="text-green-500 mr-2">></span>
+                    <input type="text" class="bg-transparent border-none outline-none text-green-300 w-full animate-pulse" placeholder="_" disabled>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Taskbar -->
+    <footer class="bg-[#050505] border-t-2 border-green-700 h-10 flex items-center justify-between px-4 z-40">
+        <div class="flex items-center gap-4 text-xs font-mono-code">
+            <span class="bg-green-700 text-black px-2 py-1 font-bold">START</span>
+            <span class="text-green-500/70 hidden sm:inline">สัมปะติฉามิ_PROTOCOL: ACTIVE</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono-code text-green-500">
+            <span>RAM: 100% MINDFUL</span>
+            <span>LATENCY: 0ms</span>
+            <span id="clock" class="text-white"></span>
+        </div>
+    </footer>
+
+    <script>
+        // Clock functionality
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // App Content Database
+        const appData = {
+            dharma: {
+                title: "Dharma-Terminal [ปัญญา]",
+                content: "Initializing Dharma Protocol...\n\n[INFO] สติคือระบบปฏิบัติการหลักของจิตใจ.\n[INFO] ความคิดคือ Process ที่เกิดขึ้น ตั้งอยู่ และดับไป.\n\nระบุความทุกข์ที่คุณต้องการ Debug..."
+            },
+            karma: {
+                title: "Karma-Debugger [แก้บั๊กชีวิต]",
+                content: "Scanning for Karma loops...\n\n[WARNING] ตรวจพบอัตตา (Ego) สะสมใน Cache.\n[ACTION] แนะนำให้อภัยทาน (Clear Cache) และปล่อยวาง (Garbage Collection).\n\nกด Enter เพื่อรันสคริปต์อริยสัจ 4..."
+            },
+            wealth: {
+                title: "Millionaire-Compiler [รวย-เฮง]",
+                content: "Compiling Wealth Blueprint...\n\n[MODULE] อิทธิบาท ๔ (ฉันทะ วิริยะ จิตตะ วิมังสา) : LOADED\n[MODULE] คาถาเงินล้าน (สัมปะติฉามิ) : INJECTED\n\nสถานะ: พร้อมประมวลผลความสำเร็จ. กรุณาระบุโปรเจกต์..."
+            },
+            armor: {
+                title: "Diamond-Armor Config [เกราะเพชร]",
+                content: "Activating Firewall พญาไก่เถื่อน & เกราะเพชร...\n\n[STATUS] ป้องกันมัลแวร์กิเลส: 100%\n[STATUS] กรองข้อมูลข่าวสารปลอม (Fake News): ONLINE\n\nระบบของคุณปลอดภัย. สติปัญญาตื่นตัวสูงสุด."
+            }
+        };
+
+        const windowEl = document.getElementById('app-window');
+        const titleEl = document.getElementById('window-title');
+        const contentEl = document.getElementById('window-content');
+
+        // Typing Effect Function
+        function typeWriter(text, element, speed = 20) {
+            element.innerHTML = '';
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    // Handle line breaks properly
+                    if (text.charAt(i) === '\n') {
+                        element.innerHTML += '<br>';
+                    } else {
+                        element.innerHTML += text.charAt(i);
+                    }
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        function openWindow(appId) {
+            const data = appData[appId];
+            titleEl.innerText = data.title;
+            windowEl.classList.remove('hidden');
+            typeWriter(data.content, contentEl);
+        }
+
+        function closeWindow() {
+            windowEl.classList.add('hidden');
+            contentEl.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
