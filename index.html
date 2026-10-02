@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Voxel OS | ตาทิพย์ควอนตัม 3D</title>
+    <style>
+        /* =========================================
+           [ทิพยรูป / CSS] สถาปัตยกรรม Glassmorphism & Hologram
+           ========================================= */
+        :root {
+            --quantum-glow: #00ffcc;
+            --dharma-gold: #ffd700;
+            --void-bg: #050508;
+            --cut-color: #ff4d4d;
+            --fill-color: #00ccff;
+        }
+        body, html {
+            margin: 0; padding: 0; min-height: 100%;
+            background-color: var(--void-bg);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: pan-y; /* ป้องกันการซูมแบบไม่ตั้งใจ */
+        }
+        /* เครือข่าย Mycorrhiza หายใจเข้าออก */
+        .mycorrhiza-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, #121220 0%, var(--void-bg) 100%);
+            z-index: -2;
+            animation: breathe 8s infinite alternate ease-in-out;
+        }
+        @keyframes breathe {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        .container {
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 15px; max-width: 600px; margin: 0 auto;
+        }
+
+        /* ภาชนะรองรับสัจจะ */
+        .glass-panel {
+            width: 100%; background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px); border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 20px; padding: 20px; box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 255, 204, 0.05);
+            margin-bottom: 15px;
+        }
+
+        /* 3D Hologram Canvas */
+        .hologram-container {
+            width: 100%; height: 220px; border-radius: 15px;
+            background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+        }
+        canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+        .hologram-overlay {
+            position: absolute; pointer-events: none;
+            text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8em;
+            letter-spacing: 1px;
+        }
+
+        /* อินพุตแบบ One-Thumb */
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.85em; margin-bottom: 4px; color: var(--quantum-glow); }
+        .input-group input {
+            width: 100%; padding: 12px; border-radius: 10px; border: none;
+            background: rgba(0, 0, 0, 0.4); color: white; font-size: 1.1em;
+            box-sizing: border-box; outline: none; transition: 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .input-group input:focus { border-color: var(--quantum-glow); box-shadow: 0 0 10px rgba(0,255,204,0.2); }
+
+        /* ปุ่มประมวลผล (ผัสสะ) */
+        .btn-execute {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #00b09b, #96c93d);
+            border: none; border-radius: 12px; color: #000; font-size: 1.1em; font-weight: bold;
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.3s;
+            box-shadow: 0 5px 20px rgba(150, 201, 61, 0.3);
+        }
+        .btn-execute:active { transform: scale(0.96); } /* Haptic feedback visual */
+
+        /* การแสดงผลสัจจะ */
+        .data-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
+            opacity: 0; transform: translateY(10px); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .data-grid.active { opacity: 1; transform: translateY(0); }
+        .data-card {
+            background: rgba(255, 255, 255, 0.02); padding: 15px; border-radius: 12px;
+            border-left: 3px solid; text-align: center;
+        }
+        .data-card h3 { margin: 5px 0 0; font-size: 1.4em; }
+        .card-cut { border-color: var(--cut-color); }
+        .card-fill { border-color: var(--fill-color); }
+        
+        .btn-print {
+            grid-column: span 2; padding: 15px; background: linear-gradient(135deg, #b8860b, #ffd700);
+            border: none; border-radius: 12px; color: black; font-size: 1.1em; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+        }
+
+        /* ลายน้ำเกียรติยศ */
+        .watermark {
+            margin-top: 25px; text-align: center; font-size: 0.7em; color: rgba(255, 255, 255, 0.3);
+            line-height: 1.6; padding-bottom: 20px;
+        }
+        .watermark strong { color: rgba(255, 255, 255, 0.5); }
+
+        /* =========================================
+           [PDF Print Media] สมศักดิ์ศรีสมบัติของชาติ
+           ========================================= */
+        @media print {
+            body { background: white; color: black; }
+            .mycorrhiza-bg, .btn-execute, .btn-print, .hologram-container { display: none; }
+            .glass-panel { border: 1px solid #000; background: transparent; box-shadow: none; filter: none; }
+            .input-group input { background: transparent; color: black; border: 1px solid #ccc; }
+            .data-card { border: 1px solid #000; background: transparent; }
+            .watermark { color: black; margin-top: 40px; font-size: 0.8em; }
+            .watermark strong { color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="mycorrhiza-bg"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 15px;">
+            <h2 style="color: var(--quantum-glow); margin: 0; letter-spacing: 1px;">QUANTUM VOXEL OS</h2>
+            <div style="font-size: 0.75em; color: var(--dharma-gold); letter-spacing: 2px;">ABSOLUTE TRUTH ENGINE</div>
+        </div>
+
+        <!-- 3D Hologram Area (Organic Voxel) -->
+        <div class="glass-panel" style="padding: 10px;">
+            <div class="hologram-container" id="holoContainer">
+                <canvas id="quantumCanvas"></canvas>
+                <div class="hologram-overlay" id="holoText">[ รอรับสัจจะความจริง ]<br><span style="font-size:0.8em">Organic Voxel Standby</span></div>
+            </div>
+        </div>
+
+        <!-- โหนดรับข้อมูล (อายตนะ) -->
+        <div class="glass-panel">
+            <div class="input-group">
+                <label>พื้นที่รังวัดรวม (ตารางเมตร)</label>
+                <input type="number" id="inputArea" placeholder="เช่น 1600" step="0.01">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group">
+                    <label>ระดับดินเดิม (ม.)</label>
+                    <input type="number" id="inputCurrentElev" placeholder="+1.50" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>ระดับที่ต้องการ (ม.)</label>
+                    <input type="number" id="inputTargetElev" placeholder="+2.00" step="0.01">
+                </div>
+            </div>
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label>ความจุรถสิบล้อ (คิว/เที่ยว)</label>
+                <input type="number" id="inputTruckCap" value="10" step="1">
+            </div>
+            <button class="btn-execute" onclick="executeGodsEye()">[ รันสัจธรรม 3 มิติ ]</button>
+        </div>
+
+        <!-- โหนดแสดงผลลัพธ์ (วิบาก/สัจจะ) -->
+        <div class="data-grid" id="resultDisplay">
+            <div class="data-card card-cut" id="cardCut" style="display: none;">
+                <div style="font-size:0.75em; opacity:0.8;">ปริมาตรตัด (Cut)</div>
+                <h3 style="color: var(--cut-color);" id="cutVal">0.00</h3>
+            </div>
+            <div class="data-card card-fill" id="cardFill" style="display: none;">
+                <div style="font-size:0.75em; opacity:0.8;">ปริมาตรถม (Fill)</div>
+                <h3 style="color: var(--fill-color);" id="fillVal">0.00</h3>
+            </div>
+            <div class="data-card" style="grid-column: span 2; border-color: var(--dharma-gold);">
+                <div style="font-size:0.75em; opacity:0.8;">จำนวนเที่ยวรถ (คัน)</div>
+                <h3 style="color: var(--dharma-gold);" id="truckVal">รอประมวลผล</h3>
+            </div>
+            <button class="btn-print" onclick="window.print()">ออกเอกสารสัจจะ (Quantum PDF)</button>
+        </div>
+
+        <!-- ลายน้ำสมบัติชาติ -->
+        <div class="watermark">
+            <strong>DOCUMENT ID: SMPTCM-003-ABSOLUTE-TRUTH</strong><br>
+            National Open Source Protocol - สมบัติของแผ่นดินไทย<br>
+            Dharma Driver: <strong>นรินทร์ อินชัย (ช่างเบิร์ดโคตรเฟี้ยว)</strong><br>
+            <span style="opacity: 0.6;">Executed with mindfulness. Dedicated to parents, teachers, and King Rama IX.</span>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================
+           [วิญญาณขันธ์] สถาปัตยกรรม Quantum Logic & 3D Render
+           Zero Dependency - Offline 100%
+           ========================================= */
+
+        // ตัวแปรสำหรับ Canvas (Hologram)
+        const canvas = document.getElementById('quantumCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        let ego = null; // ป้องกันความทรงจำค้าง (Memory Leak)
+
+        // ปรับขนาด Canvas ให้คมชัด (Retina Display)
+        function resizeCanvas() {
+            const container = document.getElementById('holoContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ฟังก์ชันวาด Organic Voxel (จำลอง 3D Isometric + Heatmap)
+        function renderHologram(diff, progress) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 20;
+            const size = 15; // ขนาด Voxel Base
+            const rows = 10;
+            const cols = 10;
+            
+            // ลมหายใจของระบบ (Breathing effect)
+            const breath = Math.sin(Date.now() * 0.002) * 2;
+            
+            // วาดตาราง 3D แนวนอน (Isometric Mesh)
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    // คำนวณพิกัด Isometric 2D
+                    const isoX = centerX + (j - i) * size * 1.5;
+                    const isoY = centerY + (j + i) * size * 0.8 - (rows*size);
+                    
+                    // Frustum Culling (Metta Protocol): ไม่วาดจุดที่อยู่นอกจอเพื่อประหยัด RAM
+                    if(isoX < -50 || isoX > canvas.width + 50 || isoY < -50 || isoY > canvas.height + 50) continue;
+
+                    // การคำนวณความสูง (Marching Cubes แบบจำลองความสมูท)
+                    // ใช้คลื่น Sine สร้างเนินดินที่เป็นธรรมชาติ
+                    const wave = Math.sin(i * 0.5 + Date.now() * 0.001) * Math.cos(j * 0.5) * 5;
+                    
+                    // ทิศทางของดิน (บวก=ถม, ลบ=ตัด) อิงจากสัจจะ (diff)
+                    const elevation = wave + (diff * progress * 10); 
+                    const finalY = isoY - elevation - breath;
+
+                    // กำหนดสี Heatmap แห่งสัจธรรม
+                    let pointColor = 'rgba(255,255,255,0.1)';
+                    if (diff < 0) pointColor = `rgba(255, 77, 77, ${0.4 + (progress*0.6)})`; // Cut = แดง
+                    else if (diff > 0) pointColor = `rgba(0, 204, 255, ${0.4 + (progress*0.6)})`; // Fill = ฟ้า
+
+                    // วาดจุดเชื่อมโยง (Deep Integration)
+                    ctx.beginPath();
+                    ctx.arc(isoX, finalY, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = pointColor;
+                    ctx.fill();
+
+                    // ลากเส้นโยงหากัน (สร้าง Mesh พื้นผิว)
+                    if (i > 0) {
+                        const prevX = centerX + (j - (i-1)) * size * 1.5;
+                        const prevY = centerY + (j + (i-1)) * size * 0.8 - (rows*size) - (Math.sin((i-1) * 0.5 + Date.now() * 0.001) * Math.cos(j * 0.5) * 5) - (diff * progress * 10) - breath;
+                        ctx.beginPath();
+                        ctx.moveTo(isoX, finalY);
+                        ctx.lineTo(prevX, prevY);
+                        ctx.strokeStyle = pointColor.replace('0.4', '0.1'); // เส้นจางๆ
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // ตัวแปรควบคุมแอนิเมชัน
+        let currentDiff = 0;
+        let animProgress = 0;
+
+        function animate() {
+            if (animProgress < 1) animProgress += 0.02; // ค่อยๆ โผล่ขึ้นมา (Transition)
+            renderHologram(currentDiff, animProgress);
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // เริ่มต้นให้วาดแบบแบนราบ (สภาวะว่างเปล่า)
+        animate();
+
+        /* =========================================
+           [Absolute Truth Engine] ประมวลผลเมื่อผู้ใช้สัมผัส
+           ========================================= */
+        function executeGodsEye() {
+            // Haptic Feedback (สั่นเบาๆ ถ้ามือถือรองรับ)
+            if (navigator.vibrate) navigator.vibrate(50);
+
+            // 1. รับค่าผัสสะความจริง
+            const area = parseFloat(document.getElementById('inputArea').value);
+            const currentElev = parseFloat(document.getElementById('inputCurrentElev').value);
+            const targetElev = parseFloat(document.getElementById('inputTargetElev').value);
+            const truckCap = parseFloat(document.getElementById('inputTruckCap').value);
+
+            // 2. ดักจับอวิชชา (Error)
+            if (isNaN(area) || isNaN(currentElev) || isNaN(targetElev) || isNaN(truckCap)) {
+                alert("[ อวิชชาแทรกแซง ] : โปรดกรอกข้อมูลความจริงให้ครบถ้วน");
+                return;
+            }
+
+            // 3. ปรุงแต่งสัจจะ (Calculate)
+            const diff = targetElev - currentElev;
+            let cutVolume = 0;
+            let fillVolume = 0;
+
+            if (diff < 0) cutVolume = Math.abs(diff) * area;
+            else if (diff > 0) fillVolume = diff * area;
+
+            const totalVolume = cutVolume + fillVolume;
+            const truckTrips = Math.ceil(totalVolume / truckCap);
+
+            // 4. สั่งให้ Hologram เปลี่ยนรูปทรงตามความจริง
+            currentDiff = diff;
+            animProgress = 0; // รีเซ็ตเพื่อสร้าง Effect
+            document.getElementById('holoText').style.display = 'none';
+
+            // 5. แสดงผล (UI Update)
+            const resultDisplay = document.getElementById('resultDisplay');
+            const cardCut = document.getElementById('cardCut');
+            const cardFill = document.getElementById('cardFill');
+
+            if (cutVolume > 0) {
+                cardCut.style.display = 'block'; cardFill.style.display = 'none';
+                document.getElementById('cutVal').innerText = cutVolume.toFixed(2) + " Q";
+                document.getElementById('truckVal').innerText = `ออก ${truckTrips} เที่ยว`;
+            } else if (fillVolume > 0) {
+                cardFill.style.display = 'block'; cardCut.style.display = 'none';
+                document.getElementById('fillVal').innerText = fillVolume.toFixed(2) + " Q";
+                document.getElementById('truckVal').innerText = `เข้า ${truckTrips} เที่ยว`;
+            } else {
+                cardCut.style.display = 'block'; cardFill.style.display = 'block';
+                document.getElementById('cutVal').innerText = "0.00";
+                document.getElementById('fillVal').innerText = "0.00";
+                document.getElementById('truckVal').innerText = "สมดุลแล้ว";
+            }
+
+            // เด้ง UI ขึ้นมาอย่างสวยงาม
+            resultDisplay.classList.remove('active');
+            setTimeout(() => resultDisplay.classList.add('active'), 50);
+
+            // เคลียร์ความจำ (Garbage Collection / Ego = Null)
+            ego = null; 
+        }
+    </script>
+</body>
+</html>
