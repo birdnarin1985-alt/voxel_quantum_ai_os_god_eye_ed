@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Voxel Hologram & Quantum Cut-Fill GIS Engine</title>
+    <style>
+        :root {
+            --bg-color: #060913;
+            --card-bg: rgba(13, 22, 41, 0.85);
+            --accent-cyan: #00f3ff;
+            --accent-gold: #ffd700;
+            --accent-red: #ff4757;
+            --accent-blue: #2ed573;
+            --text-light: #e0e6ed;
+            --border-glow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Royal Header Banner */
+        .royal-header {
+            background: linear-gradient(135deg, #1a1400 0%, #0d1629 100%);
+            border-bottom: 2px solid var(--accent-gold);
+            padding: 12px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+            position: relative;
+            z-index: 10;
+        }
+
+        .royal-header h1 {
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .royal-header p {
+            color: #a0aec0;
+            font-size: 0.75rem;
+            margin-top: 3px;
+        }
+
+        /* Main Grid Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: 360px 1fr;
+            }
+        }
+
+        /* Control Panel Card */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 12px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--border-glow);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-title {
+            color: var(--accent-cyan);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            color: #8a9ba8;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        input[type="number"], select {
+            background: rgba(5, 10, 20, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus, select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            font-weight: bold;
+            padding: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        /* 3D Hologram Viewport */
+        .viewport-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            overflow: hidden;
+            min-height: 400px;
+            box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #hologramCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        #hologramCanvas:active {
+            cursor: grabbing;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .hud-badge {
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid var(--accent-cyan);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            font-family: monospace;
+        }
+
+        /* Results Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-card {
+            background: rgba(20, 30, 55, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-card .title {
+            font-size: 0.7rem;
+            color: #8a9ba8;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .val-cut { color: var(--accent-red); }
+        .val-fill { color: #00f3ff; }
+        .val-net { color: var(--accent-gold); }
+
+        /* Print Layout Rules for Quantum PDF Engine */
+        @media print {
+            body {
+                background: #fff !important;
+                color: #000 !important;
+            }
+            .royal-header {
+                background: none !important;
+                border-bottom: 2px solid #000 !important;
+                box-shadow: none !important;
+            }
+            .royal-header h1 { color: #000 !important; text-shadow: none !important; }
+            .royal-header p { color: #444 !important; }
+            .panel, .btn, .hud-overlay { display: none !important; }
+            .container { display: block !important; }
+            .viewport-container {
+                border: 1px solid #000 !important;
+                box-shadow: none !important;
+                height: 450px !important;
+                page-break-inside: avoid;
+            }
+            .stat-card {
+                border: 1px solid #ccc !important;
+                background: #f9f9f9 !important;
+                color: #000 !important;
+            }
+            .val-cut, .val-fill, .val-net { color: #000 !important; font-weight: bold; }
+            .print-footer {
+                display: block !important;
+                margin-top: 30px;
+                text-align: center;
+                font-size: 0.8rem;
+                border-top: 1px dashed #666;
+                padding-top: 10px;
+            }
+        }
+
+        .print-footer { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Royal Watermark Header -->
+    <header class="royal-header">
+        <h1>โครงการวิศวกรรมภูมิสังคมศาสตร์ (Geo-Social Engineering Engine)</h1>
+        <p>น้อมรำลึกพระอัจฉริยภาพและพระมหากรุณาธิคุณ พระบาทสมเด็จพระบรมชนกาธิเบศร มหาภูมิพลอดุลยเดชมหาราช บรมนาถบพิตร</p>
+    </header>
+
+    <div class="container">
+        <!-- Control HUD Panel -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>📍 GPS & Seed Parameters</span>
+                <span style="font-size:0.7rem; color:var(--accent-gold);">R9-HONOR</span>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Latitude (ละติจูด)</label>
+                    <input type="number" id="latInput" value="18.8954" step="0.0001">
+                </div>
+                <div class="input-group">
+                    <label>Longitude (ลองจิจูด)</label>
+                    <input type="number" id="lngInput" value="99.0123" step="0.0001">
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label>ระดับดินอ้างอิง Target Datum (m)</label>
+                    <input type="number" id="targetLevelInput" value="12.5" step="0.5">
+                </div>
+                <div class="input-group">
+                    <label>ความละเอียด Grid Resolution</label>
+                    <select id="gridResSelect">
+                        <option value="40">40 x 40 (เร็ว)</option>
+                        <option value="64" selected>64 x 64 (สมดุล)</option>
+                        <option value="96">96 x 96 (ละเอียดสูง)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn" id="btnUpdate">⚡ ประมวลผลภูมิประเทศ 3D</button>
+
+            <div class="panel-title" style="m
